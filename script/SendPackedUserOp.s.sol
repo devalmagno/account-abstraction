@@ -4,25 +4,32 @@ pragma solidity ^0.8.27;
 import {Script} from "forge-std/Script.sol";
 import {PackedUserOperation} from "lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {IEntryPoint} from "lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
-import {HelperConfig} from "script/HelperConfig.s.sol";
+import {HelperConfig, CodeConstants} from "script/HelperConfig.s.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-contract SendPackedUserOp is Script {
+contract SendPackedUserOp is Script, CodeConstants {
     using MessageHashUtils for bytes32;
 
-    function generateSignedUserOperation(bytes memory _callData, HelperConfig.NetworkConfig memory _config)
-        public
-        view
-        returns (PackedUserOperation memory)
-    {
+    function generateSignedUserOperation(
+        bytes memory _callData,
+        HelperConfig.NetworkConfig memory _config,
+        address _minimalAccount
+    ) public view returns (PackedUserOperation memory) {
         // 1. Generate the unsigned data
-        uint256 nonce = vm.getNonce(_config.account);
-        PackedUserOperation memory userOp = _generateUnsignedUserOperation(_callData, _config.account, nonce);
+        uint256 nonce = vm.getNonce(_minimalAccount) + 1;
+        PackedUserOperation memory userOp = _generateUnsignedUserOperation(_callData, _minimalAccount, nonce);
         // 2. Get the userOp Hash
         bytes32 userOpHash = IEntryPoint(_config.entryPoint).getUserOpHash(userOp);
         bytes32 digest = userOpHash.toEthSignedMessageHash();
         // 3. Sign it, and return it
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_config.account, digest);
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+        if (block.chainid == LOCAL_CHAIN_ID) {
+            (v, r, s) = vm.sign(ANVIL_DEFAULT_KEY, digest);
+        } else {
+            (v, r, s) = vm.sign(_config.account, digest);
+        }
         userOp.signature = abi.encodePacked(r, s, v);
         return userOp;
     }

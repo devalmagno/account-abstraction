@@ -27,7 +27,7 @@ contract MinimalAccountTest is Test {
     function setUp() public {
         DeployMinimal deployer = new DeployMinimal();
         (config, minimalAccount) = deployer.run();
-        usdc = new ERC20Mock();
+        usdc = ERC20Mock(config.getConfig().usdc);
         sendPackedUserOp = new SendPackedUserOp();
     }
 

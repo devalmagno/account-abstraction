@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {Script} from "forge-std/Script.sol";
 import {MinimalAccount} from "src/ethereum/MinimalAccount.sol";
 import {EntryPoint} from "lib/account-abstraction/contracts/core/EntryPoint.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 abstract contract CodeConstants {
     // Chains ID
@@ -24,6 +25,7 @@ contract HelperConfig is Script, CodeConstants {
     struct NetworkConfig {
         address entryPoint;
         address account;
+        address usdc;
     }
 
     NetworkConfig public localNetworkConfig;
@@ -49,11 +51,19 @@ contract HelperConfig is Script, CodeConstants {
     }
 
     function getEthSepoliaConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({entryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789, account: BURNER_WALLET});
+        return NetworkConfig({
+            entryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789,
+            account: BURNER_WALLET,
+            usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+        });
     }
 
     function getZkSyncSepoliaConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({entryPoint: address(0), account: BURNER_WALLET});
+        return NetworkConfig({
+            entryPoint: address(0),
+            account: BURNER_WALLET,
+            usdc: 0xAe045DE5638162fa134807Cb558E15A3F5A7F853
+        });
     }
 
     function getAnvilEthConfig() public returns (NetworkConfig memory) {
@@ -69,7 +79,8 @@ contract HelperConfig is Script, CodeConstants {
     function createAnvilEthConfig() public returns (NetworkConfig memory) {
         vm.startBroadcast(ANVIL_DEFAULT_WALLET);
         EntryPoint entryPoint = new EntryPoint();
+        ERC20Mock usdc = new ERC20Mock();
         vm.stopBroadcast();
-        return NetworkConfig({entryPoint: address(entryPoint), account: ANVIL_DEFAULT_WALLET});
+        return NetworkConfig({entryPoint: address(entryPoint), account: ANVIL_DEFAULT_WALLET, usdc: address(usdc)});
     }
 }

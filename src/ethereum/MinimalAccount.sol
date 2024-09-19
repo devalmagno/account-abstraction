@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 import {IAccount} from "lib/account-abstraction/contracts/interfaces/IAccount.sol";
 import {PackedUserOperation} from "lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
@@ -32,14 +32,16 @@ contract MinimalAccount is IAccount, Ownable {
     // Modifiers
     ////////////////////////////////////////////////////////////////////*/
     modifier requireFromEntryPoint() {
-        require(msg.sender == address(i_entryPoint), MinimalAccount__NotFromEntryPoint());
+        if (msg.sender != address(i_entryPoint)) {
+            revert MinimalAccount__NotFromEntryPoint();
+        }
         _;
     }
 
     modifier requireFromEntryPointOrOwner() {
-        require(
-            msg.sender == address(i_entryPoint) || msg.sender == owner(), MinimalAccount__NotFromEntryPointOrOwner()
-        );
+        if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
+            revert MinimalAccount__NotFromEntryPointOrOwner();
+        }
         _;
     }
 
@@ -56,7 +58,9 @@ contract MinimalAccount is IAccount, Ownable {
     ////////////////////////////////////////////////////////////////////*/
     function execute(address dest, uint256 value, bytes calldata functionData) external requireFromEntryPointOrOwner {
         (bool sucess, bytes memory result) = dest.call{value: value}(functionData);
-        require(sucess, MinimalAccount__CallFailed(result));
+        if (!sucess) {
+            revert MinimalAccount__CallFailed(result);
+        }
     }
 
     // A signature is valid, if it's the MinimalAccount owner
